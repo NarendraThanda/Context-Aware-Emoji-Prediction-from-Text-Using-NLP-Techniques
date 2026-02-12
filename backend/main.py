@@ -78,12 +78,96 @@ async def load_model():
         print("      ✓ Transformer embeddings ready")
         print("      ✓ Context modeling ready")
         
-        # 5. Emoji Data
+        # 5. Emoji Data with Enhanced Descriptions
         print("\n[5/5] Loading Emoji Dataset...")
         emoji_df = pd.read_csv(os.path.join(BASE_DIR, "full_emoji.csv"))
-        descriptions = emoji_df['name'].fillna("").tolist()
-        emoji_embeddings = model.encode(descriptions, convert_to_tensor=True)
-        print(f"      ✓ Loaded {len(emoji_df)} emojis")
+        
+        # Build rich contextual descriptions for better matching
+        emoji_context_map = {
+            "grinning face": "happy joy smile laughing cheerful excited good great amazing wonderful",
+            "face with tears of joy": "funny hilarious laughing crying lol comedy joke humor haha",
+            "smiling face with heart-eyes": "love adore beautiful gorgeous amazing crush romantic attraction",
+            "thinking face": "wondering thinking confused hmm curious pondering question",
+            "loudly crying face": "sad crying upset devastated heartbroken tears emotional pain",
+            "fire": "hot amazing lit awesome cool fire trending popular excellent",
+            "red heart": "love heart romance relationship care affection passion valentine",
+            "thumbs up": "good okay yes agree approve nice well done great job",
+            "clapping hands": "congratulations bravo applause well done great achievement success",
+            "folded hands": "please thank you prayer grateful hope wish bless",
+            "face with rolling eyes": "annoyed bored sarcasm whatever really seriously",
+            "smiling face with sunglasses": "cool awesome confident swagger stylish boss",
+            "winking face": "flirting playful hint sly joke kidding wink",
+            "angry face": "angry mad furious rage upset irritated annoyed hate",
+            "fearful face": "scared afraid fear horror terrified frightened panic",
+            "nauseated face": "sick disgusted gross yuck eww vomit ill",
+            "sleeping face": "tired sleepy bored exhausted zzz rest nap",
+            "partying face": "celebration party fun birthday congratulations hooray woohoo",
+            "smiling face with halo": "innocent angel good pure sweet kind blessed",
+            "face screaming in fear": "shocked scared horror surprised omg terrified",
+            "rolling on the floor laughing": "hilarious dying funny rofl lmao too funny",
+            "hugging face": "hug love warm embrace comfort friendly care",
+            "star-struck": "amazing celebrity idol wow incredible starstruck fan wonderful",
+            "money-mouth face": "money rich wealthy cash dollar expensive profit",
+            "nerd face": "smart intelligent geek nerd study academic clever",
+            "broken heart": "heartbreak sad breakup hurt pain loss rejection cry",
+            "skull": "dead dying hilarious literally dead OMG I cant",
+            "sparkles": "magic beautiful amazing shine new sparkle glitter special",
+            "rocket": "launch startup fast speed progress technology moon success",
+            "sun": "sunny weather bright warm morning sunshine beautiful day",
+            "moon": "night evening sleep dark goodnight lunar celestial",
+            "rainbow": "colorful diversity pride beautiful hope promise",
+            "trophy": "winner champion success achievement first place victory",
+            "musical note": "music song singing melody tune rhythm listening",
+            "camera": "photo picture photography selfie memory snapshot",
+            "book": "reading study learning education knowledge literature",
+            "laptop": "computer work technology coding programming developer",
+            "pizza": "food hungry eating delicious dinner lunch yummy",
+            "coffee": "morning caffeine drink energy wake up tired work",
+            "beer": "drinks alcohol party cheers celebration bar",
+            "dog face": "dog puppy pet cute animal adorable woof",
+            "cat face": "cat kitty pet meow animal cute feline",
+            "Christmas tree": "christmas holiday festive merry december winter celebration",
+            "gift": "present birthday surprise gift giving celebration",
+            "balloon": "party celebration birthday fun festive happy",
+            "crown": "king queen royal boss leader power royalty",
+            "100": "perfect score hundred percent absolutely totally agree completely",
+            "eyes": "looking watching see staring curious notice attention",
+            "wave": "hello hi goodbye greeting hey welcome wave",
+            "muscle": "strong strength gym workout fitness power exercise flex",
+            "brain": "smart intelligent thinking genius mind knowledge clever",
+            "butterfly": "beautiful nature transformation change growth pretty",
+            "rose": "love romance flower beautiful valentine date romantic",
+            "sunflower": "happy bright cheerful flower nature yellow sunshine",
+            "earth": "world global planet earth international travel nature",
+            "car": "driving travel road trip automobile vehicle transportation",
+            "airplane": "travel flying vacation trip journey international flight",
+            "house": "home family living housing domestic shelter comfort",
+            "hospital": "sick medical health doctor nurse emergency illness",
+            "school": "education learning study class teacher student academic",
+            "warning": "caution alert danger warning careful attention beware",
+            "check mark": "done complete yes correct approved finished success",
+            "cross mark": "no wrong incorrect error rejected failed cancel",
+        }
+        
+        # Create enhanced descriptions
+        descriptions = []
+        for _, row in emoji_df.iterrows():
+            name = str(row['name']).strip() if pd.notna(row['name']) else ""
+            # Look for matching context in our map
+            extra_context = ""
+            for key, context in emoji_context_map.items():
+                if key.lower() in name.lower():
+                    extra_context = context
+                    break
+            # Build rich description
+            if extra_context:
+                desc = f"{name}. {extra_context}"
+            else:
+                desc = name
+            descriptions.append(desc)
+        
+        emoji_embeddings = model.encode(descriptions, convert_to_tensor=True, show_progress_bar=True)
+        print(f"      ✓ Loaded {len(emoji_df)} emojis with enhanced descriptions")
         print("      ✓ Pre-computed embeddings ready")
         
         print("\n" + "=" * 50)
@@ -147,23 +231,50 @@ def predict_emoji(payload: dict):
             pass
     
     # === 4. Generate Embeddings (Transformer) ===
-    user_embedding = model.encode(user_text, convert_to_tensor=True)
+    # Use both original and processed text for better matching
+    user_embedding_original = model.encode(user_text, convert_to_tensor=True)
+    
+    # Also encode with sentiment context for richer matching
+    sentiment_label = sentiment_result.get("emotion", {}).get("primary_emotion", "")
+    enriched_text = f"{user_text}. {sentiment_label}" if sentiment_label else user_text
+    user_embedding_enriched = model.encode(enriched_text, convert_to_tensor=True)
+    
+    # Combine embeddings (70% original meaning + 30% sentiment-enriched)
+    user_embedding = 0.7 * user_embedding_original + 0.3 * user_embedding_enriched
     
     # === 5. Cosine Similarity for Multi-class Classification ===
     cosine_scores = util.cos_sim(user_embedding, emoji_embeddings)[0]
     
     # === 6. Top-K Prediction ===
-    top_indices = cosine_scores.argsort(descending=True)[:top_k]
+    # Get more candidates, then pick the best
+    candidate_count = max(top_k * 5, 20)
+    top_indices = cosine_scores.argsort(descending=True)[:candidate_count]
     
-    results = []
+    # Score and rank candidates
+    candidates = []
     for idx in top_indices:
         idx = int(idx)
         score = float(cosine_scores[idx])
-        results.append({
+        candidates.append({
             "emoji": emoji_df.iloc[idx]['emoji'],
             "name": emoji_df.iloc[idx]['name'],
-            "score": round(score, 4)
+            "score": round(score, 4),
+            "idx": idx
         })
+    
+    # Take top_k unique emojis (some emojis may have duplicate entries)
+    seen_emojis = set()
+    results = []
+    for c in candidates:
+        if c["emoji"] not in seen_emojis:
+            seen_emojis.add(c["emoji"])
+            results.append({
+                "emoji": c["emoji"],
+                "name": c["name"],
+                "score": c["score"]
+            })
+        if len(results) >= top_k:
+            break
     
     return {
         "emojis": results,
