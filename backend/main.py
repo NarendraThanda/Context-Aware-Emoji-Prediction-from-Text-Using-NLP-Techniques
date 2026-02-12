@@ -2,6 +2,13 @@
 Context-Aware Emoji Prediction API
 Advanced NLP Pipeline with comprehensive techniques.
 """
+import os
+import sys
+
+# Resolve paths relative to this file's directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
@@ -73,7 +80,7 @@ async def load_model():
         
         # 5. Emoji Data
         print("\n[5/5] Loading Emoji Dataset...")
-        emoji_df = pd.read_csv("full_emoji.csv")
+        emoji_df = pd.read_csv(os.path.join(BASE_DIR, "full_emoji.csv"))
         descriptions = emoji_df['name'].fillna("").tolist()
         emoji_embeddings = model.encode(descriptions, convert_to_tensor=True)
         print(f"      ✓ Loaded {len(emoji_df)} emojis")
@@ -88,7 +95,7 @@ async def load_model():
         raise e
 
 
-@app.get("/")
+@app.get("/api")
 def read_root():
     return {
         "message": "Context-Aware Emoji Prediction API v2.0",
