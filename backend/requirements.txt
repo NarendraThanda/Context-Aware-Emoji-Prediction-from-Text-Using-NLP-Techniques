@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pandas
+sentence-transformers
+numpy
+python-multipart
+nltk
+textblob
+scikit-learn
+torch
