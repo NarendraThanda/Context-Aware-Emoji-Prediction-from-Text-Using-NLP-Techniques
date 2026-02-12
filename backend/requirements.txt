@@ -8,3 +8,4 @@ nltk
 textblob
 scikit-learn
 torch
+aiofiles

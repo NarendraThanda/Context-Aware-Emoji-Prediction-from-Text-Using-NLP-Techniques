@@ -1,5 +1,5 @@
 """
-Context-Aware Emoji Prediction — Full Stack Launcher
+Context-Aware Emoji Prediction - Full Stack Launcher
 Run with: python main.py
 Serves both the FastAPI backend and React frontend on a single port.
 """
@@ -8,6 +8,11 @@ import sys
 import subprocess
 import importlib.util
 import socket
+
+# Fix Windows terminal encoding for emoji/unicode
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 # Paths
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -22,7 +27,6 @@ def free_port(port):
     """Kill any process using the given port."""
     try:
         if sys.platform == "win32":
-            # Find PID using the port
             result = subprocess.run(
                 ["netstat", "-ano"],
                 capture_output=True, text=True, shell=True
@@ -35,11 +39,10 @@ def free_port(port):
                             ["taskkill", "/F", "/PID", pid],
                             capture_output=True, shell=True
                         )
-                        print(f"   ✓ Freed port {port} (killed PID {pid})")
+                        print(f"   [OK] Freed port {port} (killed PID {pid})")
                     except Exception:
                         pass
         else:
-            # Linux/Mac
             result = subprocess.run(
                 ["lsof", "-ti", f":{port}"],
                 capture_output=True, text=True
@@ -47,7 +50,7 @@ def free_port(port):
             if result.stdout.strip():
                 for pid in result.stdout.strip().split("\n"):
                     subprocess.run(["kill", "-9", pid], capture_output=True)
-                print(f"   ✓ Freed port {port}")
+                print(f"   [OK] Freed port {port}")
     except Exception:
         pass
 
@@ -61,7 +64,7 @@ def is_port_in_use(port):
 def build_frontend():
     """Build the React frontend if dist doesn't exist."""
     if not os.path.exists(os.path.join(DIST_DIR, "index.html")):
-        print("\n   🔨 Building frontend...")
+        print("\n   Building frontend...")
         try:
             subprocess.run(
                 ["npm", "run", "build"],
@@ -69,13 +72,13 @@ def build_frontend():
                 check=True,
                 shell=True,
             )
-            print("   ✓ Frontend built successfully!\n")
+            print("   [OK] Frontend built successfully!\n")
         except (subprocess.CalledProcessError, FileNotFoundError):
-            print("   ✗ Frontend build failed.")
+            print("   [FAIL] Frontend build failed.")
             print("   Run 'cd frontend && npm install && npm run build' first.")
             sys.exit(1)
     else:
-        print("   ✓ Frontend build found.")
+        print("   [OK] Frontend build found.")
 
 
 def load_backend_app():
@@ -121,8 +124,8 @@ def mount_frontend(app):
 def main():
     print("")
     print("=" * 50)
-    print("  🚀 Context-Aware Emoji Prediction")
-    print("     Full Stack Application")
+    print("  Context-Aware Emoji Prediction")
+    print("  Full Stack Application")
     print("=" * 50)
     print("")
 
@@ -130,6 +133,8 @@ def main():
     if is_port_in_use(PORT):
         print(f"[0/3] Port {PORT} is in use, freeing it...")
         free_port(PORT)
+        import time
+        time.sleep(2)
 
     # Step 1: Check frontend build
     print("[1/3] Checking frontend build...")
@@ -142,13 +147,13 @@ def main():
     # Step 3: Mount frontend
     print("[3/3] Mounting frontend...")
     mount_frontend(app)
-    print("   ✓ Frontend mounted.\n")
+    print("   [OK] Frontend mounted.\n")
 
     print("=" * 50)
-    print("  ✅ Ready! Open in your browser:")
+    print("  Ready! Open in your browser:")
     print("")
-    print(f"  🌐 App:      http://localhost:{PORT}")
-    print(f"  📡 API Docs: http://localhost:{PORT}/docs")
+    print(f"  App:      http://localhost:{PORT}")
+    print(f"  API Docs: http://localhost:{PORT}/docs")
     print("=" * 50)
     print("")
 
