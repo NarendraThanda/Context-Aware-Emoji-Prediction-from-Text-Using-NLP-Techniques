@@ -1,0 +1,7 @@
+backend/
+*.py
+requirements.txt
+data/
+__pycache__/
+*.csv
+.git/
