@@ -24,15 +24,25 @@ function PredictorPage() {
         setAnalysis(null)
 
         try {
-            const response = await axios.post(`${API_BASE}/predict`, {
+            const url = `${API_BASE}/predict`
+            console.log('Requesting:', url, '| API_BASE:', API_BASE || '(empty - using relative)')
+            const response = await axios.post(url, {
                 text: inputText,
                 top_k: 2
             })
             setPredictions(response.data.emojis)
             setAnalysis(response.data.analysis)
         } catch (err) {
-            console.error(err)
-            setError("Failed to fetch predictions. Please try again later.")
+            console.error('Prediction error:', err)
+            if (err.response) {
+                // Server responded with error status
+                setError(`Server error (${err.response.status}): ${err.response.data?.detail || 'Backend returned an error.'}`)
+            } else if (err.request) {
+                // Request was made but no response (network/CORS issue)
+                setError(`Cannot reach the backend server. ${API_BASE ? `Tried: ${API_BASE}` : 'No API URL configured — set VITE_API_URL.'}`)
+            } else {
+                setError("Failed to fetch predictions. Please try again later.")
+            }
         } finally {
             setLoading(false)
         }
