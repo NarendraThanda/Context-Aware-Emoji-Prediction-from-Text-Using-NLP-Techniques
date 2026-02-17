@@ -23,3 +23,12 @@ frontend/dist/
 *.sln
 *.sw?
 .DS_Store
+
+# Trained model artifacts (too large for git)
+trained_model/*.pkl
+
+# Temporary / debug output
+pred_debug.txt
+prediction_results.txt
+results.txt
+accuracy_report.txt

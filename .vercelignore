@@ -1,7 +1,12 @@
 backend/
-*.py
-requirements.txt
 data/
+trained_model/
 __pycache__/
 *.csv
 .git/
+main.py
+train_model.py
+evaluate_accuracy.py
+test_predictions.py
+*.log
+*.txt

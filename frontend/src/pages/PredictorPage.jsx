@@ -3,8 +3,9 @@ import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Sparkles, Copy, Check, Brain, Heart, Zap, AlertCircle } from 'lucide-react'
 
-// API base URL: uses env variable in production (Vercel), falls back to proxy in dev
-const API_BASE = import.meta.env.VITE_API_URL || ''
+// API base URL: In production (Vercel), uses /api (same domain serverless functions)
+// In development, uses VITE_API_URL env var or falls back to Vite proxy
+const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
 function PredictorPage() {
     const [inputText, setInputText] = useState('')

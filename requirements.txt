@@ -1,23 +1,20 @@
 # ============================================
 # Context-Aware Emoji Prediction - Dependencies
-# Install with: pip install -r requirements.txt
 # ============================================
 
-# --- Web Framework ---
+# --- Core ---
 fastapi
 uvicorn
+aiofiles
 python-multipart
 
-# --- Data Processing ---
-pandas
-numpy
-
 # --- NLP & Machine Learning ---
-sentence-transformers
-nltk
-textblob
 scikit-learn
-torch
+textblob
+numpy
+pandas
+nltk
 
-# --- Utilities ---
-aiofiles
+# --- Deep Learning (for transformer embeddings) ---
+torch
+sentence-transformers
