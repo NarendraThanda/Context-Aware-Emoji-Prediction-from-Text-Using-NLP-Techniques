@@ -327,10 +327,10 @@ function HomePage() {
                     className="glass-panel p-8 md:p-10 grid grid-cols-2 md:grid-cols-4 gap-6 text-center"
                 >
                     {[
-                        { value: '5,000+', label: 'Emojis Supported' },
+                        { value: '1800+', label: 'Emojis Supported' },
                         { value: '6', label: 'NLP Techniques' },
                         { value: '< 1s', label: 'Response Time' },
-                        { value: '95%+', label: 'Accuracy' },
+                        { value: '85%+', label: 'Accuracy' },
                     ].map((stat, idx) => (
                         <motion.div key={idx} variants={itemVariants}>
                             <div className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-300 to-pink-300 mb-1">
