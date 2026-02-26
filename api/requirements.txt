@@ -1,5 +1,4 @@
-# Lightweight dependencies for Vercel serverless functions
-# No PyTorch/sentence-transformers (too large for Vercel's 250MB limit)
-scikit-learn>=1.4.0
+# Ultra-lightweight dependencies for Vercel serverless functions
+# No scikit-learn, no numpy, no scipy, no PyTorch
+# Total unzipped: ~15MB (well under Vercel's 250MB limit)
 textblob>=0.18.0
-numpy>=1.26.0
