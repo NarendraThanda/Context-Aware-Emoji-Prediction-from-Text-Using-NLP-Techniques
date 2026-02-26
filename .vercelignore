@@ -9,4 +9,4 @@ train_model.py
 evaluate_accuracy.py
 test_predictions.py
 *.log
-*.txt
+*.ipynb

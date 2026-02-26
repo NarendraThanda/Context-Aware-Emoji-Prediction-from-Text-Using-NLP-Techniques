@@ -241,13 +241,16 @@ _engine_cache = {}
 
 
 def _load_emoji_data():
-    """Load and cache the emoji dataset."""
+    """Load and cache the emoji dataset from emoji_lookup.json (trained model artifact)."""
     if "emojis" in _engine_cache:
         return _engine_cache["emojis"]
 
-    data_path = os.path.join(os.path.dirname(__file__), "emoji_list.json")
+    data_path = os.path.join(os.path.dirname(__file__), "emoji_lookup.json")
     with open(data_path, "r", encoding="utf-8") as f:
-        emojis = json.load(f)
+        lookup = json.load(f)  # { "name": "emoji_char", ... }
+
+    # Convert to list format: [{ "emoji": "😀", "name": "grinning face" }, ...]
+    emojis = [{"emoji": emoji_char, "name": name} for name, emoji_char in lookup.items()]
 
     _engine_cache["emojis"] = emojis
     return emojis

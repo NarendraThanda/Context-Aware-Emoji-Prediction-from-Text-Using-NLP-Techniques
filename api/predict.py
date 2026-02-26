@@ -33,7 +33,7 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             # Import here to keep cold start fast for health checks
-            from _nlp_engine import predict_emojis
+            from shared.nlp_engine import predict_emojis
 
             result = predict_emojis(user_text, top_k=top_k)
             self._send_json(200, result)

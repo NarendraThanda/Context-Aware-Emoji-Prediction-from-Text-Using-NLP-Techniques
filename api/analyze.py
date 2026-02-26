@@ -29,7 +29,7 @@ class handler(BaseHTTPRequestHandler):
                 self._send_json(400, {"error": "No text provided"})
                 return
 
-            from _nlp_engine import analyze_text
+            from shared.nlp_engine import analyze_text
 
             result = analyze_text(text)
             self._send_json(200, result)
