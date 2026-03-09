@@ -1,10 +1,21 @@
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Sparkles, Copy, Check, Brain, Heart, Zap, AlertCircle } from 'lucide-react'
 
-// API base URL: In production (Vercel), uses /api (same domain serverless functions)
-// In development, uses VITE_API_URL env var or falls back to Vite proxy
+// Debounce utility function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
 function PredictorPage() {
@@ -15,38 +26,52 @@ function PredictorPage() {
     const [error, setError] = useState(null)
     const [copiedIndex, setCopiedIndex] = useState(null)
 
+    // Debounced prediction function
+    const debouncedPredict = useCallback(
+        debounce(async (text) => {
+            if (!text.trim()) {
+                setPredictions([])
+                setAnalysis(null)
+                return
+            }
+
+            setLoading(true)
+            setError(null)
+
+            try {
+                const url = `${API_BASE}/predict`
+                console.log('Requesting:', url, '| API_BASE:', API_BASE || '(empty - using relative)')
+                const response = await axios.post(url, {
+                    text: text,
+                    top_k: 3
+                })
+                setPredictions(response.data.emojis)
+                setAnalysis(response.data.analysis)
+            } catch (err) {
+                console.error('Prediction error:', err)
+                if (err.response) {
+                    setError(`Server error (${err.response.status}): ${err.response.data?.detail || 'Backend returned an error.'}`)
+                } else if (err.request) {
+                    setError(`Cannot reach the backend server. ${API_BASE ? `Tried: ${API_BASE}` : 'No API URL configured — set VITE_API_URL.'}`)
+                } else {
+                    setError("Failed to fetch predictions. Please try again later.")
+                }
+                setPredictions([])
+                setAnalysis(null)
+            } finally {
+                setLoading(false)
+            }
+        }, 500), // 500ms debounce
+        []
+    )
+
+    useEffect(() => {
+        debouncedPredict(inputText)
+    }, [inputText, debouncedPredict])
+
     const handlePredict = async (e) => {
         e.preventDefault()
-        if (!inputText.trim()) return
-
-        setLoading(true)
-        setError(null)
-        setPredictions([])
-        setAnalysis(null)
-
-        try {
-            const url = `${API_BASE}/predict`
-            console.log('Requesting:', url, '| API_BASE:', API_BASE || '(empty - using relative)')
-            const response = await axios.post(url, {
-                text: inputText,
-                top_k: 2
-            })
-            setPredictions(response.data.emojis)
-            setAnalysis(response.data.analysis)
-        } catch (err) {
-            console.error('Prediction error:', err)
-            if (err.response) {
-                // Server responded with error status
-                setError(`Server error (${err.response.status}): ${err.response.data?.detail || 'Backend returned an error.'}`)
-            } else if (err.request) {
-                // Request was made but no response (network/CORS issue)
-                setError(`Cannot reach the backend server. ${API_BASE ? `Tried: ${API_BASE}` : 'No API URL configured — set VITE_API_URL.'}`)
-            } else {
-                setError("Failed to fetch predictions. Please try again later.")
-            }
-        } finally {
-            setLoading(false)
-        }
+        debouncedPredict(inputText)
     }
 
     const copyToClipboard = (emoji, index) => {
@@ -124,31 +149,23 @@ function PredictorPage() {
                     transition={{ delay: 0.4, duration: 0.6 }}
                     className="glass-panel-strong p-6 mb-8"
                 >
-                    <form onSubmit={handlePredict} className="relative">
-                        <div className="relative flex items-center">
-                            <Search className="absolute left-4 text-gray-500 w-5 h-5 z-10" />
-                            <input
-                                type="text"
+                    <div className="relative">
+                        <div className="relative flex items-start">
+                            <Search className="absolute left-4 top-4 text-gray-500 w-5 h-5 z-10" />
+                            <textarea
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
-                                placeholder="Type something amazing..."
-                                className="glass-input w-full py-4 pl-12 pr-36 text-lg"
+                                placeholder="Start typing to see emoji predictions..."
+                                className="glass-input w-full py-4 pl-12 pr-4 text-lg min-h-[120px] resize-none"
+                                rows={4}
                             />
-                            <button
-                                type="submit"
-                                disabled={loading || !inputText.trim()}
-                                className="glass-button absolute right-2 px-5 py-2.5 text-sm"
-                            >
-                                {loading ? (
-                                    <div className="glass-spinner"></div>
-                                ) : (
-                                    <>
-                                        Predict <Sparkles size={15} />
-                                    </>
-                                )}
-                            </button>
                         </div>
-                    </form>
+                        {loading && (
+                            <div className="absolute right-4 top-4">
+                                <div className="glass-spinner-small"></div>
+                            </div>
+                        )}
+                    </div>
                 </motion.div>
 
                 <AnimatePresence mode="wait">

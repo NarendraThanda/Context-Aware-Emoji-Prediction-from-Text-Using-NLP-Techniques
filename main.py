@@ -76,7 +76,8 @@ def build_frontend():
         except (subprocess.CalledProcessError, FileNotFoundError):
             print("   [FAIL] Frontend build failed.")
             print("   Run 'cd frontend && npm install && npm run build' first.")
-            sys.exit(1)
+            print("   Continuing with backend only...")
+            # sys.exit(1)
     else:
         print("   [OK] Frontend build found.")
 

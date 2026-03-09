@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Context-Aware Emoji Predictor",
+  "version": "1.0",
+  "description": "Real-time emoji prediction using advanced NLP as you type",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://localhost:8000/*"
+  ],
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Emoji Predictor"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

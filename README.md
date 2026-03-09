@@ -1,462 +1,384 @@
-<p align="center">
-  <h1 align="center">🎯 Context-Aware Emoji Prediction from Text Using NLP Techniques</h1>
-  <p align="center">
-    A full-stack application that predicts contextually relevant emojis from natural language text using an advanced NLP pipeline — featuring an ensemble classifier, transformer embeddings, sentiment analysis, and a modern React UI.
-  </p>
-</p>
+# Context-Aware Emoji Prediction from Text Using NLP Techniques
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" />
-  <img src="https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white" />
-  <img src="https://img.shields.io/badge/scikit--learn-1.4+-F7931E?logo=scikit-learn&logoColor=white" />
-  <img src="https://img.shields.io/badge/Deployed-Vercel-black?logo=vercel" />
-</p>
+This is a complete application that predicts emojis from text using natural language processing (NLP). It works in real-time and can also be used as a Chrome extension.
 
----
+## What This Project Does
 
-## 📖 Table of Contents
+Imagine typing a message and getting emoji suggestions that match the mood and meaning. This app does exactly that! It analyzes your text and suggests the best emojis.
 
-- [Overview](#-overview)
-- [Features](#-features)
-- [Architecture](#-architecture)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Getting Started](#-getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Training the Model](#training-the-model)
-  - [Running Locally](#running-locally)
-- [API Endpoints](#-api-endpoints)
-- [NLP Pipeline Details](#-nlp-pipeline-details)
-- [Model Performance](#-model-performance)
-- [Deployment](#-deployment)
-- [Screenshots](#-screenshots)
-- [Contributing](#-contributing)
-- [License](#-license)
+## Project Parts
+
+1. [Preparing Data and Training the Model](#part-1-preparing-data-and-training-the-model)
+2. [Backend Server](#part-2-backend-server)
+3. [Frontend App](#part-3-frontend-app)
+4. [Deployment and Chrome Extension](#part-4-deployment-and-chrome-extension)
 
 ---
 
-## 🌟 Overview
+## Part 1: Preparing Data and Training the Model
 
-This project implements a **Context-Aware Emoji Prediction System** that takes natural language text as input and predicts the most relevant emojis. It goes beyond simple keyword matching by using a multi-stage NLP pipeline that understands the **context, sentiment, and semantics** of the text.
+This part cleans the data, sets up text processing, and trains a machine learning model to predict emojis.
 
-The system uses a **trained ensemble classifier** (Logistic Regression + Calibrated SVM) as the primary prediction engine, with **sentence-transformer embeddings** as an intelligent fallback.
+### Files and Folders
+```
+data/
+├── emojiclean.ipynb     # Notebook for cleaning and exploring emoji data
+└── full_emoji.csv       # Raw emoji data with descriptions
+
+trained_model/
+├── emoji_lookup.json    # Maps emoji codes to names
+├── training_metrics.json # How well the model performs
+├── classifier.pkl       # The trained prediction model
+├── tfidf_word.pkl       # Tool for turning words into numbers
+├── tfidf_char.pkl       # Tool for turning characters into numbers
+└── label_encoder.pkl    # Tool for handling emoji labels
+
+train_model.py           # Script to train the model
+evaluate_accuracy.py     # Tools to check model performance
+test_predictions.py      # Script to test predictions
+```
+
+### Main Components
+
+#### 1. Data Cleaning (`data/emojiclean.ipynb`)
+- **Goal**: Get the emoji data ready for training
+- **Steps**:
+  - Remove duplicates and bad data
+  - Make emoji names and descriptions consistent
+  - Create better descriptions for training
+  - Look at data patterns and distributions
+
+#### 2. Text Processing (`nlp_pipeline.py` in backend/)
+- **TextPreprocessor**: Cleans and breaks down text
+  - Makes text lowercase, removes punctuation
+  - Filters out common words
+  - Simplifies words to their base form
+- **FeatureExtractor**: Turns text into numbers for the computer
+  - Uses TF-IDF to count important words and patterns
+  - Finds common word combinations
+- **SentimentAnalyzer**: Detects emotions in text
+  - Analyzes positive/negative feelings
+  - Classifies emotions like happy, sad, etc.
+
+#### 3. Training the Model (`train_model.py`)
+- **Combined Model**: Uses multiple machine learning methods together
+  - Logistic Regression, SVM, Random Forest
+  - Gives confidence scores for predictions
+- **Backup System**: Uses advanced AI for predictions when needed
+  - Uses a pre-trained language model
+  - Pre-calculates emoji meanings for speed
+- **Training Steps**:
+  ```python
+  # Load and clean data
+  df = pd.read_csv('data/full_emoji.csv')
+  preprocessor = TextPreprocessor()
+  feature_extractor = FeatureExtractor()
+
+  # Turn text into numbers
+  X_word = tfidf_word.fit_transform(texts)
+  X_char = tfidf_char.fit_transform(texts)
+  X = hstack([X_word, X_char])
+
+  # Train the combined model
+  ensemble = ManualEnsemble([LogisticRegression(), SVC(probability=True), RandomForestClassifier()])
+  ensemble.fit(X, y)
+  ```
+
+#### 4. Testing (`evaluate_accuracy.py`)
+- **Performance Checks**:
+  - Accuracy, precision, recall, F1-score
+  - Top predictions accuracy
+  - Error analysis
+- **Validation**: Tests model on different data splits
 
 ---
 
-## ✨ Features
+## Part 2: Backend Server
 
-- **🔤 Text Preprocessing** — Tokenization, stop-word removal, and lemmatization
-- **📊 Feature Extraction** — TF-IDF vectorization with word-level and character-level n-grams
-- **🤖 Ensemble Classifier** — Logistic Regression + Calibrated SVM with weighted voting
-- **🧠 Transformer Embeddings** — Sentence-BERT (`all-MiniLM-L6-v2`) for semantic similarity fallback
-- **💡 Sentiment & Emotion Analysis** — Polarity, subjectivity, and emotion detection using TextBlob
-- **🎯 Top-K Prediction** — Returns the top-K predicted emojis with confidence scores
-- **📈 Evaluation Metrics** — Accuracy, Precision, Recall, F1-Score, and Top-K Accuracy
-- **🖥️ Modern React Frontend** — Glassmorphism UI with Framer Motion animations
-- **🚀 Full-Stack Launcher** — Single-command startup serving both frontend and backend
-- **☁️ Vercel Deployment** — Serverless-ready with lightweight TF-IDF engine for the cloud
+A server built with FastAPI that provides the prediction service through web endpoints.
+
+### Files and Folders
+```
+backend/
+├── main.py              # Main server with API endpoints
+├── nlp_pipeline.py      # Text processing tools
+└── requirements.txt     # Python packages needed
+
+api/
+├── analyze.py           # Cloud function for analysis
+├── index.py             # Cloud API entry point
+├── predict.py           # Cloud prediction endpoint
+├── requirements.txt     # Cloud packages
+└── shared/
+    ├── __init__.py
+    ├── emoji_lookup.json
+    └── nlp_engine.py     # Shared processing tools
+```
+
+### Main Components
+
+#### 1. FastAPI Server (`backend/main.py`)
+- **API Endpoints**:
+  - `GET /api`: Info about the API and model
+  - `POST /predict`: Main prediction service
+  - `POST /analyze`: Detailed text analysis
+  - `GET /metrics`: Model performance stats
+- **Features**:
+  - Allows cross-origin requests
+  - Loads models automatically
+  - Handles errors well
+  - Processes requests quickly
+
+#### 2. Prediction Process
+```python
+@app.post("/predict")
+def predict_emoji(payload: dict):
+    text = payload.get("text", "")
+    top_k = payload.get("top_k", 2)
+
+    # Clean the text
+    processed = preprocessor.preprocess(text)
+
+    # Use trained model first
+    if USE_TRAINED_MODEL:
+        results = _predict_with_trained_model(text, top_k)
+    else:
+        # Use AI model as backup
+        results = _predict_with_transformer(text, top_k)
+
+    return {
+        "emojis": results,
+        "model_used": "trained_classifier" if USE_TRAINED_MODEL else "transformer",
+        "analysis": {
+            "preprocessing": processed,
+            "sentiment": sentiment_analyzer.full_analysis(text),
+            "features": feature_extractor.get_top_ngrams(text)
+        }
+    }
+```
+
+#### 3. Cloud Deployment (`api/`)
+- **Serverless Functions**: For cloud hosting
+- **Shared Tools**: Reusable components
+- **Same API**: Works like local server
+
+#### 4. Model Loading
+- **Trained Models**: Loads saved models
+- **AI Setup**: Downloads and caches language models
+- **Emoji Data**: Pre-calculated for speed
+- **Fallback**: Tries different methods if one fails
 
 ---
 
-## 🏗️ Architecture
+## Part 3: Frontend App
 
+A modern React app with real-time emoji prediction, built with Vite and styled with Tailwind CSS.
+
+### Files and Folders
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    React Frontend                       │
-│  (Vite + TailwindCSS + Framer Motion)                   │
-│  ┌──────────┐  ┌──────────────┐                         │
-│  │ HomePage │  │ PredictorPage│                         │
-│  └──────────┘  └──────┬───────┘                         │
-│                       │ POST /predict                   │
-└───────────────────────┼─────────────────────────────────┘
-                        │
-┌───────────────────────▼─────────────────────────────────┐
-│                   FastAPI Backend                        │
-│                                                         │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │              NLP Pipeline                         │   │
-│  │  ┌─────────────┐  ┌──────────────┐               │   │
-│  │  │   Text      │  │  Sentiment   │               │   │
-│  │  │Preprocessor │  │  Analyzer    │               │   │
-│  │  └──────┬──────┘  └──────┬───────┘               │   │
-│  │         │                │                        │   │
-│  │  ┌──────▼────────────────▼───────┐               │   │
-│  │  │     Feature Extractor         │               │   │
-│  │  │  (TF-IDF word + char n-grams) │               │   │
-│  │  └──────────────┬────────────────┘               │   │
-│  │                 │                                 │   │
-│  │  ┌──────────────▼────────────────┐               │   │
-│  │  │   Ensemble Classifier         │               │   │
-│  │  │  (LR + SVM) ──► Top-K Emojis  │               │   │
-│  │  └───────────────────────────────┘               │   │
-│  │            ▲ fallback                             │   │
-│  │  ┌─────────┴─────────────────────┐               │   │
-│  │  │  Sentence-Transformer (BERT)  │               │   │
-│  │  │  Cosine Similarity Matching   │               │   │
-│  │  └───────────────────────────────┘               │   │
-│  └──────────────────────────────────────────────────┘   │
-│                                                         │
-│  📂 trained_model/  ←  emoji_classifier.pkl             │
-│  📂 data/           ←  full_emoji.csv (1800+ emojis)    │
-└─────────────────────────────────────────────────────────┘
+frontend/
+├── public/
+│   ├── manifest.json    # Chrome extension info
+│   ├── _redirects       # Hosting redirects
+│   └── vite.svg
+├── src/
+│   ├── App.jsx          # Main app component
+│   ├── main.jsx         # App start point
+│   ├── index.css        # Main styles
+│   ├── App.css          # App styles
+│   ├── components/
+│   │   └── Navbar.jsx   # Navigation bar
+│   └── pages/
+│       ├── HomePage.jsx     # Welcome page
+│       └── PredictorPage.jsx # Prediction page
+├── package.json         # App dependencies
+├── vite.config.js       # Build config
+├── tailwind.config.js   # Style config
+├── postcss.config.js    # CSS processing
+└── eslint.config.js     # Code checking
 ```
+
+### Main Components
+
+#### 1. Real-Time Prediction (`PredictorPage.jsx`)
+- **Smart Input**: Waits 500ms before predicting
+- **Live Updates**: Shows suggestions as you type
+- **Text Area**: Multi-line input
+- **Loading**: Shows progress
+- **Errors**: Friendly error messages
+
+#### 2. User Interface
+- **Modern Design**: Glass-like effects
+- **Animations**: Smooth movements
+- **Responsive**: Works on phone and desktop
+- **Dark Theme**: Easy on eyes
+- **Accessible**: Works with screen readers
+
+#### 3. API Connection
+```javascript
+const debouncedPredict = useCallback(
+    debounce(async (text) => {
+        const response = await axios.post(`${API_BASE}/predict`, {
+            text: text,
+            top_k: 3
+        });
+        setPredictions(response.data.emojis);
+        setAnalysis(response.data.analysis);
+    }, 500),
+    []
+);
+```
+
+#### 4. Styling
+- **Tailwind CSS**: Quick styling
+- **Custom Parts**: Special buttons and panels
+- **Colors**: Consistent theme
+- **Motion**: Smooth animations
 
 ---
 
-## 🛠️ Tech Stack
+## Part 4: Deployment and Chrome Extension
 
-| Layer      | Technology                                                       |
-|------------|------------------------------------------------------------------|
-| **Frontend** | React 19, Vite 7, TailwindCSS, Framer Motion, Lucide Icons    |
-| **Backend**  | FastAPI, Uvicorn, Python 3.11+                                 |
-| **NLP**      | NLTK, TextBlob, scikit-learn (TF-IDF, LR, SVM, RF)            |
-| **Deep Learning** | PyTorch, Sentence-Transformers (`all-MiniLM-L6-v2`)      |
-| **Data**     | Pandas, NumPy, SciPy                                          |
-| **Deployment (Cloud)** | Vercel (Serverless Functions + Static Frontend)      |
-| **Deployment (Self-hosted)** | Render (backend), Vercel (frontend)              |
+Ways to deploy the app and set up a browser extension.
 
----
-
-## 📁 Project Structure
-
+### Files and Folders
 ```
-Context-Aware-Emoji-Prediction-from-Text-Using-NLP-Techniques/
-│
-├── 📄 main.py                  # Full-stack launcher (single command startup)
-├── 📄 train_model.py           # Model training pipeline
-├── 📄 evaluate_accuracy.py     # Accuracy evaluation & reporting
-├── 📄 test_predictions.py      # Quick prediction test script
-├── 📄 requirements.txt         # Python dependencies
-├── 📄 vercel.json              # Vercel deployment configuration
-├── 📄 .vercelignore            # Files to ignore during Vercel deployment
-├── 📄 .gitignore               # Git ignore rules
-│
-├── 📂 backend/                 # FastAPI backend (local development)
-│   ├── main.py                 # FastAPI app with full NLP pipeline
-│   ├── nlp_pipeline.py         # NLP components (Preprocessor, Feature Extractor, etc.)
-│   └── render.yaml             # Render deployment config
-│
-├── 📂 api/                     # Vercel serverless functions (cloud deployment)
-│   ├── index.py                # GET /api — Health check endpoint
-│   ├── predict.py              # POST /api/predict — Emoji prediction
-│   ├── analyze.py              # POST /api/analyze — Text analysis
-│   └── _nlp_engine.py          # Lightweight NLP engine (scikit-learn only)
-│
-├── 📂 frontend/                # React frontend (Vite)
-│   ├── src/
-│   │   ├── App.jsx             # Main app with routing
-│   │   ├── main.jsx            # React entry point
-│   │   ├── index.css           # Global styles & design system
-│   │   ├── App.css             # App-level styles
-│   │   ├── components/
-│   │   │   └── Navbar.jsx      # Navigation component
-│   │   └── pages/
-│   │       ├── HomePage.jsx    # Landing page
-│   │       └── PredictorPage.jsx # Emoji prediction interface
-│   ├── package.json            # Node.js dependencies
-│   ├── vite.config.js          # Vite configuration with API proxy
-│   ├── tailwind.config.js      # TailwindCSS configuration
-│   └── index.html              # HTML entry point
-│
-├── 📂 data/                    # Dataset
-│   ├── full_emoji.csv          # Full emoji dataset (1800+ emojis)
-│   └── emojiclean.ipynb        # Data cleaning notebook
-│
-└── 📂 trained_model/           # Trained model artifacts (git-ignored)
-    ├── emoji_classifier.pkl    # Trained ensemble classifier
-    ├── tfidf_word.pkl          # Word-level TF-IDF vectorizer
-    ├── tfidf_char.pkl          # Character-level TF-IDF vectorizer
-    ├── label_encoder.pkl       # Label encoder for emoji classes
-    ├── emoji_lookup.json       # Emoji name → character lookup
-    └── training_metrics.json   # Training performance metrics
+vercel.json              # Vercel hosting config
+render.yaml              # Render hosting config
+main.py                  # App launcher
+requirements.txt         # Main packages
+
+frontend/public/manifest.json  # Extension info
 ```
 
----
+### Main Components
 
-## 🚀 Getting Started
+#### 1. App Launcher (`main.py`)
+- **Full App**: Runs both server and frontend
+- **Ports**: Manages connections
+- **Building**: Compiles frontend
+- **Development**: Auto-reloads on changes
 
-### Prerequisites
-
-- **Python 3.11+** — [Download here](https://www.python.org/downloads/)
-- **Node.js 18+** — [Download here](https://nodejs.org/)
-- **Git** — [Download here](https://git-scm.com/)
-
-### Installation
-
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/NarendraThanda/Context-Aware-Emoji-Prediction-from-Text-Using-NLP-Techniques.git
-   cd Context-Aware-Emoji-Prediction-from-Text-Using-NLP-Techniques
-   ```
-
-2. **Create a Python virtual environment** (recommended)
-
-   ```bash
-   python -m venv venv
-
-   # Activate on Windows
-   venv\Scripts\activate
-
-   # Activate on macOS/Linux
-   source venv/bin/activate
-   ```
-
-3. **Install Python dependencies**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Install frontend dependencies**
-
-   ```bash
-   cd frontend
-   npm install
-   cd ..
-   ```
-
-5. **Download NLTK data** (auto-downloads on first run, but you can do it manually)
-
-   ```bash
-   python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('averaged_perceptron_tagger')"
-   ```
-
-### Training the Model
-
-Before running the application for the first time, you need to train the emoji prediction model:
-
-```bash
-python train_model.py
-```
-
-This will:
-1. Load the emoji dataset from `data/full_emoji.csv`
-2. Generate enriched training data with text augmentation
-3. Extract TF-IDF features (word-level + character-level n-grams)
-4. Train an ensemble of Logistic Regression and Calibrated SVM classifiers
-5. Evaluate the model with accuracy, precision, recall, F1-score, and top-K accuracy
-6. Save all model artifacts to `trained_model/`
-
-> ⏱️ Training takes approximately **2–5 minutes** depending on your hardware.
-
-### Running Locally
-
-#### Option 1: Full-Stack Mode (Recommended)
-
-This serves both the FastAPI backend and the React frontend on a **single port** (`http://localhost:8000`):
-
-```bash
-# Build the frontend first (one-time)
-cd frontend
-npm run build
-cd ..
-
-# Launch the full-stack app
-python main.py
-```
-
-Then open **http://localhost:8000** in your browser.
-
-#### Option 2: Development Mode (Hot Reload)
-
-Run the backend and frontend separately for active development:
-
-**Terminal 1 — Backend:**
-```bash
-cd backend
-uvicorn main:app --reload --host localhost --port 8000
-```
-
-**Terminal 2 — Frontend:**
-```bash
-cd frontend
-npm run dev
-```
-
-The frontend dev server (default `http://localhost:5173`) is configured to proxy API requests to the backend on port `8000`.
-
----
-
-## 📡 API Endpoints
-
-| Method | Endpoint         | Description                          |
-|--------|------------------|--------------------------------------|
-| `GET`  | `/api`           | Health check & API info              |
-| `POST` | `/predict`       | Predict emojis for given text        |
-| `POST` | `/analyze`       | Get detailed NLP analysis            |
-| `GET`  | `/metrics`       | View model training metrics          |
-
-### Example: Predict Emojis
-
-**Request:**
-```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"text": "I love you so much", "top_k": 2}'
-```
-
-**Response:**
+#### 2. Chrome Extension (`manifest.json`)
 ```json
 {
-  "emojis": [
-    {"emoji": "🤟", "name": "love-you gesture", "score": 0.4521},
-    {"emoji": "🥰", "name": "smiling face with hearts", "score": 0.2103}
-  ],
-  "model_used": "trained_classifier",
-  "analysis": {
-    "preprocessing": {
-      "original": "I love you so much",
-      "tokens": ["love", "much"],
-      "processed": ["love", "much"],
-      "final_text": "love much"
-    },
-    "sentiment": {
-      "polarity": 0.5,
-      "subjectivity": 0.6,
-      "sentiment": "positive",
-      "emotions": {"joy": 1.0},
-      "dominant_emotion": "joy"
-    },
-    "features": {
-      "top_ngrams": [["love", 0.707], ["much", 0.707]]
-    }
-  }
+  "manifest_version": 3,
+  "name": "Context-Aware Emoji Predictor",
+  "action": {
+    "default_popup": "index.html"
+  },
+  "host_permissions": ["http://localhost:8000/*"],
+  "permissions": ["activeTab", "storage"]
 }
 ```
 
-### Example: Analyze Text
+- **Popup**: App as browser popup
+- **Local Access**: Connects to local server
+- **Ready for More**: Can add page features
 
-**Request:**
+#### 3. Deployment Options
+
+##### Vercel (Cloud)
+- **API Functions**: Serverless endpoints
+- **Static Site**: Hosts the frontend
+- **Settings**: API connection config
+
+##### Render.com
+- **Containers**: Docker deployment
+- **Always On**: For backend
+- **Scaling**: Grows with users
+
+##### Local Development
+- **Virtual Environment**: Isolated Python setup
+- **Both Parts**: Server and frontend together
+- **Auto-Reload**: Updates on code changes
+
+#### 4. Build and Run
 ```bash
-curl -X POST http://localhost:8000/analyze \
-  -H "Content-Type: application/json" \
-  -d '{"text": "I am feeling really anxious about tomorrow"}'
+# Install packages
+pip install -r requirements.txt
+cd frontend && npm install
+
+# Train model (optional)
+python train_model.py
+
+# Run everything
+python main.py
+
+# Or separate
+python backend/main.py  # Server on :8000
+cd frontend && npm run dev  # Frontend on :5173
 ```
 
----
-
-## 🧪 NLP Pipeline Details
-
-The prediction system uses a **6-stage NLP pipeline**:
-
-### Stage 1: Text Preprocessing
-- **Tokenization** — Splitting text into individual words using NLTK
-- **Stop-word Removal** — Filtering out common English words (the, is, at, etc.)
-- **Lemmatization** — Reducing words to their base/root form (running → run)
-
-### Stage 2: Sentiment Analysis
-- **Polarity Detection** — Measures how positive or negative the text is (-1 to +1)
-- **Subjectivity Analysis** — Measures how subjective vs. objective the text is (0 to 1)
-- **Emotion Classification** — Detects dominant emotion (joy, sadness, anger, fear, surprise, disgust)
-
-### Stage 3: Feature Extraction
-- **TF-IDF Vectorization** — Converts text into numerical feature vectors
-- **Word-level N-grams** — Captures unigrams and bigrams from words
-- **Character-level N-grams** — Captures sub-word patterns for robustness
-
-### Stage 4: Trained Ensemble Classifier
-- **Logistic Regression** — Fast, interpretable linear classifier
-- **Calibrated SVM (LinearSVC)** — High-accuracy support vector machine with probability calibration
-- **Weighted Voting** — Combines predictions from both models using probability averaging
-
-### Stage 5: Transformer Embeddings (Fallback)
-- **Model:** `all-MiniLM-L6-v2` (Sentence-BERT)
-- **Method:** Encodes both user text and emoji descriptions into 384-dim vectors
-- **Matching:** Cosine similarity to find the closest emoji descriptions
-- **Trigger:** Activates when ensemble confidence is below 15%, or when no trained model is available
-
-### Stage 6: Top-K Selection
-- Returns the top-K unique emojis ranked by confidence score
-- Deduplication ensures no repeated emoji predictions
+#### 5. Extension Setup
+- **Load Extension**: Use built frontend folder
+- **Modern API**: Chrome extension standards
+- **Permissions**: Only what's needed
+- **Future**: Add more browser features
 
 ---
 
-## 📈 Model Performance
+## How It Works
 
-| Metric              | Score     |
-|---------------------|-----------|
-| **Accuracy**        | 91.81%    |
-| **Precision**       | 93.13%    |
-| **Recall**          | 91.81%    |
-| **F1-Score**        | 91.84%    |
-| **Top-3 Accuracy**  | 95.97%    |
-| **Top-5 Accuracy**  | 96.63%    |
-
-**Dataset:**
-- Total samples: 12,024
-- Training samples: 9,619
-- Test samples: 2,405
-- Emoji classes: 1,816
-
-To run the full accuracy evaluation yourself:
-
-```bash
-python evaluate_accuracy.py
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Backend API   │    │   NLP Models    │
+│   (React)       │◄──►│   (FastAPI)     │◄──►│   (Saved/SC)    │
+│                 │    │                 │    │                 │
+│ • Live UI       │    │ • /predict       │    │ • Combined ML   │
+│ • Smart input   │    │ • /analyze       │    │ • AI backup     │
+│ • Animations    │    │ • CORS ok        │    │ • Embeddings    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │  Chrome         │
+                    │  Extension      │
+                    │  (Popup)        │
+                    └─────────────────┘
 ```
 
----
+## Technologies
 
-## ☁️ Deployment
+- **Backend**: Python, FastAPI, scikit-learn, NLTK, AI models
+- **Frontend**: React, Vite, Tailwind CSS, Framer Motion, Axios
+- **ML/NLP**: TF-IDF, SVM, Logistic Regression, BERT
+- **Deployment**: Vercel, Render, Docker
+- **Extension**: Chrome Manifest V3
 
-### Vercel (Recommended for Demo)
+## Getting Started
 
-The project is configured for **one-click Vercel deployment** with:
-- **Frontend:** Built and served as static files from `frontend/dist/`
-- **Backend:** Serverless Python functions in `api/` using a lightweight TF-IDF engine (no PyTorch)
+1. **Setup**:
+   ```bash
+   git clone <repository>
+   cd Context-Aware-Emoji-Prediction-from-Text-Using-NLP-Techniques
+   pip install -r requirements.txt
+   ```
 
-```bash
-# Install Vercel CLI
-npm i -g vercel
+2. **Train Model** (if needed):
+   ```bash
+   python train_model.py
+   ```
 
-# Deploy
-vercel
-```
+3. **Run App**:
+   ```bash
+   python main.py
+   ```
 
-> **Note:** The Vercel deployment uses `api/_nlp_engine.py` — a lightweight NLP engine that uses scikit-learn TF-IDF + cosine similarity instead of PyTorch/sentence-transformers, keeping the bundle under Vercel's 250MB limit.
+4. **Use It**:
+   - Web App: http://localhost:8000
+   - API Docs: http://localhost:8000/docs
 
-### Render (Self-hosted Backend)
+5. **Chrome Extension**:
+   - Build: `cd frontend && npm install && npm run build`
+   - Load `frontend/dist/` as extension
 
-The backend can be deployed separately to Render:
+## Contributing
 
-```bash
-# Configuration is in backend/render.yaml
-# Start command: uvicorn main:app --host 0.0.0.0 --port $PORT
-```
-
----
-
-## 🖼️ Screenshots
-
-### Home Page
-The landing page features a modern glassmorphism design with animated hero section, feature cards, and NLP technique explanations.
-
-### Prediction Page
-The predictor page allows users to input text and instantly see predicted emojis with confidence scores, along with detailed NLP analysis (preprocessing steps, sentiment, and features).
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Here's how to get started:
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
----
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
-
----
-
-<p align="center">
-  Made with ❤️ by <a href="https://github.com/NarendraThanda">Narendra Thanda</a>
-</p>
+We welcome help! Areas to improve:
+- Better model accuracy
+- More NLP features
+- Better design
+- Support more browsers
+- Make it faster
