@@ -16,7 +16,7 @@ function debounce(func, wait) {
     };
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api'
+const API_BASE = import.meta.env.VITE_API_URL || ''
 
 function PredictorPage() {
     const [inputText, setInputText] = useState('')
